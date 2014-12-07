@@ -1,0 +1,371 @@
+﻿/*
+* Created by SharpDevelop.
+* User: Albantov
+* Date: 19.10.2014
+*/
+using System;
+using System.Text;
+using System.Windows.Input;
+
+using Client;
+using Data;
+using MVVM;
+using System.IO;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+
+
+namespace PortsChecker.ModelView
+{
+    public class ComputersListSelectModelView : ViewModelBase
+    {
+
+        private CCLient mvSelectedClient = null;
+        private List<Computer> mvServerClients = null;
+
+
+
+        public CCLient SelectedClient
+        {
+            get
+            {
+                return mvSelectedClient;
+            }
+            set
+            {
+                if (value == mvSelectedClient)
+                    return;
+
+                mvSelectedClient = value;
+                OnPropertyChanged("SelectedClient");
+            }
+
+        }
+
+        public ObservableCollection<Computer> ServerClients
+        {
+            get
+            {
+                return  new ObservableCollection<Computer>( mvServerClients);
+            }
+        }
+
+    }
+
+
+
+
+namespace PortsChecker.ModelView
+{
+	/// <summary>
+	/// Description of ComputerModelView.
+	/// </summary>
+	public class ComputerModelView : ViewModelBase, IComputer
+    {
+
+        #region private fields
+        private CCLient modClientTarget = null;
+		
+		public Computer Comp { get; private set;}
+
+		private bool mvIsLoading = false;
+        private string mvSelectedUrl = string.Empty;
+        private string mvMessage = string.Empty;
+        private CCLient mvSelectedClient = null;
+
+        private List<Computer> mvServerClients = null;
+        private List<PortInfo> mvPortInfo = null;
+        #endregion
+
+
+        #region Properties
+
+        public CCLient SelectedClient
+        {
+            get
+            {
+                return mvSelectedClient;
+            }
+            set
+            {
+                if (value == mvSelectedClient)
+                    return;
+
+                mvSelectedClient = value;
+                OnPropertyChanged("SelectedClient");
+            }
+        }
+
+        public List<PortInfo> PortInfo
+        {
+            get
+            {
+
+                if (mvPortInfo == null)
+                {
+                    SelectedClient = Client;
+                    OnGetPortsInfo();
+                    SelectedClient = null;
+                }
+
+                return mvPortInfo;
+            }
+            protected set
+            {
+                if (value == mvPortInfo)
+                    return;
+
+                mvPortInfo = value;
+            }
+        }
+
+        public List<Computer> ServerClients
+        {
+            get
+            {
+                return mvServerClients;
+            }
+            set
+            {
+                if (value == mvServerClients)
+                    return;
+
+                mvServerClients = value;
+                //OnPropertyChanged("ServerClients");
+            }
+        }
+		
+
+       public int PortNumber 
+		{ 
+			get
+			{ 
+				return modClientTarget.Port;
+			}
+			/*protected set
+			{
+				modConnection.Port = value;
+			}*/
+		}
+		
+		public string Host 
+		{
+			get
+			{ 
+				return modClientTarget.Host;
+			}
+			/*protected set
+			{
+				if (value != Comp.Host)
+				{
+					modConnection.Host = value;
+					OnPropertyChanged("Host");
+				}
+			}*/
+		}
+		
+		
+		public ConnectionState State
+		{
+			get
+			{ 
+				return modClientTarget.State;
+			}
+		}
+
+
+        
+     
+
+        public CCLient Client
+        {
+            get
+            {
+                return modClientTarget;
+            }
+        }
+
+        public string SelectedUrl
+        {
+            get
+            {
+                return mvSelectedUrl;
+            }
+            set
+            {
+                if (value == mvSelectedUrl)
+                    return;
+
+                mvSelectedUrl = value;
+                OnPropertyChanged("SelectedUrl");
+            }
+        }
+
+
+        public string Message
+        {
+            get
+            {
+                return mvMessage;
+            }
+            set
+            {
+                if (value == mvMessage)
+                    return;
+
+                mvMessage = value;
+                OnPropertyChanged("Message");
+            }
+        }
+
+		  public bool IsLoading
+		  {
+			  get
+			  {
+				  return mvIsLoading;
+			  }
+              set
+              {
+                  if (value == mvIsLoading)
+                      return;
+
+                  mvIsLoading = value;
+                  OnPropertyChanged("IsLoading");
+              }
+		  }
+
+        #endregion
+
+        #region Commands
+        private DelegateCommand mvGetServerClients;
+        public ICommand GetServerClients
+        {
+            get
+            {
+                return mvGetServerClients;
+            }
+        }
+
+        private DelegateCommand mvSendFile;
+        public ICommand SendFile
+        {
+            get
+            {
+                return mvSendFile;
+            }
+        }
+
+        private DelegateCommand mvSendMessage;
+        public ICommand SendMessage
+        {
+            get
+            {
+                return mvSendMessage;
+            }
+        }
+
+        private DelegateCommand mvGetPortsInfo;
+        public ICommand GetPortsInfo
+        {
+            get
+            {
+                return mvGetPortsInfo;
+            }
+        }
+
+        private DelegateCommand mvAnalyzeAndSendUrl;
+        public ICommand AnalyzeAndSendUrl
+        {
+            get
+            {
+                return mvAnalyzeAndSendUrl;
+            }
+        }
+        #endregion
+
+        #region Constr
+        public ComputerModelView(CCLient connection )
+		{
+			SelectedClient = null;
+            modClientTarget = connection;
+			Comp = new Computer(modClientTarget.Port, modClientTarget.Host, modClientTarget.State);
+			
+			mvGetServerClients = new DelegateCommand(OnGetServerClients);
+			mvSendFile = new DelegateCommand(OnSendFile);
+			mvSendMessage = new DelegateCommand(OnSendMessage);
+			mvGetPortsInfo = new DelegateCommand(OnGetPortsInfo);
+			mvAnalyzeAndSendUrl = new DelegateCommand(OnAnalyzeAndSendUrl);
+		}
+        #endregion
+
+
+        private void OnAnalyzeAndSendUrl()
+		{
+            if (SelectedClient == null)
+                return;
+
+            if (string.IsNullOrEmpty(SelectedUrl))
+                return;
+
+			ObjectInfo objInfo = new ObjectInfo(Commands.AnalyzeAndSendUrl , @"http:gmail.com");
+			var answer = Engines.ClientsConnections.Instance.GetDataRequest( SelectedClient, objInfo);
+
+            SelectedUrl = string.Empty;
+		}
+		
+		private void OnSendMessage()
+		{
+            if (SelectedClient == null)
+                return;
+
+            if (string.IsNullOrEmpty(Message))
+                return;
+
+			ObjectInfo objInfo = new ObjectInfo(Commands.SendMessage, Message);
+			var answer = Engines.ClientsConnections.Instance.GetDataRequest( SelectedClient, objInfo);
+		}
+		
+
+		private void OnSendFile()
+		{
+            if (SelectedClient == null)
+                return;
+
+            if (string.IsNullOrEmpty(SelectedUrl))
+                return;
+
+            if (!File.Exists(SelectedUrl))
+                return;
+
+            var bytes = File.ReadAllBytes(SelectedUrl);//Encoding.ASCII.GetBytes("tttttr");
+			ObjectInfo objInfo = new ObjectInfo(Commands.SendFile, bytes);
+			var answer = Engines.ClientsConnections.Instance.GetDataRequest( modClientTarget, objInfo);
+		}
+
+        private void OnGetPortsInfo()
+        {
+            if (SelectedClient == null)
+                return;
+
+            IsLoading = true;
+
+            ObjectInfo objInfo = new ObjectInfo(Commands.GetPorts);
+            var answer = Engines.ClientsConnections.Instance.GetDataRequest(SelectedClient, objInfo);
+            PortInfo = answer.TargetObject as List<PortInfo>;
+
+            IsLoading = false;
+        }
+
+
+		private void OnGetServerClients()
+		{
+			ObjectInfo objInfo = new ObjectInfo(Commands.GetServerClients);
+			var answer = Engines.ClientsConnections.Instance.GetDataRequest( modClientTarget, objInfo);
+            ServerClients = answer.TargetObject as List<Computer>;
+		}
+
+       
+    }
+}
+
+}

@@ -1,0 +1,104 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Window
+	x:Class="PortsChecker.Window1" 
+	xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" 
+	xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" 
+	xmlns:modelViews="clr-namespace:PortsChecker.ModelView" 
+	xmlns:converters="clr-namespace:Converters"
+    xmlns:convertersSys="clr-namespace:System.Windows.Controls;assembly=PresentationFramework;"
+    xmlns:ctr="clr-namespace:LoadingPanelSample.Controls"
+
+    Title="PortsChecker"
+	Height="300"
+	Width="300">
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="booleanToVisibilityConverter"></BooleanToVisibilityConverter>
+    </Window.Resources>
+
+    <Window.DataContext>
+		<modelViews:WindowModelView></modelViews:WindowModelView>
+	</Window.DataContext>
+	<Grid>
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition
+				MinWidth="80"
+				Width="*"></ColumnDefinition>
+			<ColumnDefinition
+				Width="Auto"></ColumnDefinition>
+			<ColumnDefinition></ColumnDefinition>
+		</Grid.ColumnDefinitions>
+		<DataGrid
+			ItemsSource="{Binding Ports}"
+			Grid.Column="0"></DataGrid>
+		<GridSplitter
+			Grid.Column="1"></GridSplitter>
+		<Grid
+			Grid.Column="2">
+			<Grid.RowDefinitions>
+				<RowDefinition
+					Height="Auto"></RowDefinition>
+				<RowDefinition
+					Height="*"></RowDefinition>
+			</Grid.RowDefinitions>
+			<Border>
+				<StackPanel
+					Orientation="Horizontal">
+					<Button
+						Content="AddComputer"
+						Style="{StaticResource buttonStyle}"
+						Command="{Binding AddComputer}"></Button>
+					<Button
+						Content="RemoveComputer"
+						Style="{StaticResource buttonStyle}"
+						Command="{Binding RemoveComputer}"></Button>
+				</StackPanel>
+			</Border>
+			<ListView
+				Grid.Row="1"
+				SelectedItem="{Binding SelectedItem}"
+				ItemsSource="{Binding Path=Computers}">
+				<ListView.ItemTemplate>
+					<DataTemplate>
+						<StackPanel Orientation="Horizontal">
+                            <StackPanel.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Get server clients"
+											Command="{Binding GetServerClients}"></MenuItem>
+                                    <MenuItem Header="Send file" 
+											Command="{Binding SendFile}"></MenuItem>
+                                    <MenuItem Header="Send message" 
+											Command="{Binding SendMessage}"></MenuItem>
+                                    <MenuItem Header="Get ports info" 
+											Command="{Binding GetPortsInfo}"></MenuItem>
+                                    <MenuItem Header="Analyze and send url"
+											Command="{Binding AnalyzeAndSendUrl}"></MenuItem>
+                                </ContextMenu>
+                            </StackPanel.ContextMenu>
+                            <Ellipse
+								Width="15"
+								Height="15"
+								Fill="{Binding State, Converter={converters:StateToColorConverter}}">
+							</Ellipse>
+                            <TextBlock
+                                VerticalAlignment="Center"
+                                HorizontalAlignment="Center"
+								Text="{Binding Host}"></TextBlock>
+                            <ctr:CircularProgressBar 
+                                Width="10"
+								Height="10"
+                                VerticalAlignment="Center"
+                                HorizontalAlignment="Center"
+			                    Visibility="{Binding IsLoading, 
+						                    Converter={StaticResource booleanToVisibilityConverter}}"/>
+                                <Button 
+                                    Content="GetPortsInfo"
+                                    Command="{Binding GetPortsInfo}"></Button>
+                           
+                        </StackPanel>
+					</DataTemplate>
+				</ListView.ItemTemplate>
+			</ListView>
+		</Grid>
+	</Grid>
+</Window>

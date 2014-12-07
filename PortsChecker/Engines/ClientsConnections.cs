@@ -1,0 +1,98 @@
+﻿/*
+ * Created by SharpDevelop.
+ * User: Albantov
+ * Date: 27.10.2014
+ */
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
+using System.Threading;
+using Data;
+using Client;
+
+namespace PortsChecker.Engines
+{
+	/// <summary>
+	/// Description of ClientsConnections.
+	/// </summary>
+	public class ClientsConnections
+	{
+		public string CurrentHost { get; set; }
+		
+		public int CurrentPort { get; set; }
+		
+		public List<CCLient> Clients { get; private set;}
+		
+		public static ClientsConnections Instance { get; private set;}
+		
+		static ClientsConnections()
+		{
+			Instance = new ClientsConnections();
+		}
+		
+		private ClientsConnections()
+		{
+			Clients = new List<CCLient>();
+		}
+		
+		public CCLient Connect(string host, int port)
+		{
+			CCLient client = new CCLient();
+			client.Connect(host, port);
+			
+			Clients.Add(client);
+			return client;
+		}
+		
+		public ObjectInfo GetDataRequest(CCLient target, ObjectInfo sendedData)
+		{
+			if (target == null || sendedData == null)
+				return null;	
+			
+			target.Send( sendedData.ToByte() );
+			var bytes = target.ReceiveMessage();
+			
+			ObjectInfo received = new ObjectInfo();
+			received.ToObjectInfo(bytes);
+			
+			return received;
+		}
+
+        public ObjectInfo GetDataRequestAsync(CCLient target, ObjectInfo sendedData)
+        {
+            //Thread thread = new Thread(new ThreadStart(() => { GetDataRequest(target, sendedData); }));
+            //thread.Start();
+            ManualResetEvent resetEvent = new ManualResetEvent(false);
+            ObjectInfo inf = null;
+            
+            ThreadPool.QueueUserWorkItem(p => 
+            {
+               inf = GetDataRequest(target, sendedData);
+               resetEvent.Set();
+            });
+            resetEvent.WaitOne();
+            return inf;
+        }
+		
+		
+		public bool GetDataRequest(string host, int port)
+		{
+			var client = Clients.FirstOrDefault( p => p.Host == host && p.Port == port);
+			if (client != null) {
+				
+				var info = new Data.ObjectInfo(CurrentHost);
+				info.IsNeedAnswer = true;
+				client.Send( info.ToByte() );
+				
+				return true;
+			}
+			else 
+				return false;
+		}
+		
+	}
+}

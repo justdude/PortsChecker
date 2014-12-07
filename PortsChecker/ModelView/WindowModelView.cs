@@ -1,0 +1,104 @@
+﻿/*
+ * Created by SharpDevelop.
+ * User: Albantov
+ * Date: 19.10.2014
+ */
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Windows.Input;
+
+using Data;
+using MVVM;
+using PortsChecker.Engines;
+using PortsChecker.Handlers;
+
+namespace PortsChecker.ModelView
+{
+	/// <summary>
+	/// Description of WindowModelView.
+	/// </summary>
+	public class WindowModelView : ViewModelBase
+	{
+		
+		private object mvSelectedItem;
+		
+		public ObservableCollection<IComputer> Computers { get; private set;}
+		
+		public ObservableCollection<PortInfo> Ports { get; private set;}
+		
+		public ICommand AddComputer { get; private set;}
+		
+		public ICommand RemoveComputer { get; private set;}
+		
+		public string SelectedIp {get; set;}
+		
+		public object SelectedItem
+		{
+			get
+			{
+				return mvSelectedItem;
+			}
+			set
+			{
+                if (mvSelectedItem == value)
+                    return;
+
+					mvSelectedItem = value;
+
+                    var computerModelView = mvSelectedItem as ComputerModelView;
+
+                    List<PortInfo> ports = computerModelView.PortInfo;//ConnectionsChecker.GetOpenPort();
+                    if (ports == null)
+                    {
+                        ports = new List<PortInfo>();
+                    }
+                    Ports.Clear();
+                    ports.ForEach(p => { Ports.Add(p); });
+
+                    //Ports = new ObservableCollection<PortInfo>(ports);
+					
+					OnPropertyChanged("SelectedItem");
+			}
+		}
+		
+		public WindowModelView()
+		{
+			Computers = new ObservableCollection<IComputer>();
+			AddComputer = new DelegateCommand(OnAddComputer);
+			RemoveComputer = new DelegateCommand(OnRemoveComputer);
+			
+
+			
+			ClientsConnections.Instance.CurrentHost = ConnectionsChecker.GetOwnIPAdress().Address.ToString();
+			Engines.ClientsConnections.Instance.CurrentPort = 11102;
+
+            List<PortInfo> ports = new List<PortInfo>();//ConnectionsChecker.GetOpenPort();
+			Ports = new ObservableCollection<PortInfo>(ports);
+
+            //var current = new ComputerModelView(null);
+            //current.SelectedClient = new Client.CCLient();
+            //Computers.Add(current);
+
+		}
+		
+		private void OnAddComputer()
+		{
+			View.NewComputer wind = new View.NewComputer();
+			var modelView = new NewComputerModelView(){ Close = ()=> wind.Close()};
+			wind.DataContext = modelView;
+			wind.ShowDialog();
+			Computers.Add( modelView.Comp );
+		}
+		
+		private void OnRemoveComputer()
+		{
+			if (!string.IsNullOrEmpty(SelectedIp))
+				Computers.Remove( Computers.FirstOrDefault( p=> !string.IsNullOrEmpty(p.Host) 
+			                                           && p.Host == SelectedIp ));
+		}
+		
+	}
+}
