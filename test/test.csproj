@@ -52,5 +52,15 @@
   <ItemGroup>
     <None Include="README" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PortsChecker\PortsChecker.csproj">
+      <Project>{f6a5d751-959d-4f1b-8b14-e16a6cad92f5}</Project>
+      <Name>PortsChecker</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Server\Server.csproj">
+      <Project>{7984e194-59d9-443b-81bf-c7d0fd2a9c6a}</Project>
+      <Name>Server</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

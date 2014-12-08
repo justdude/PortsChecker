@@ -56,8 +56,12 @@
 			</Border>
 			<ListView
 				Grid.Row="1"
-				SelectedItem="{Binding SelectedItem}"
 				ItemsSource="{Binding Path=Computers}">
+				<ListView.SelectedItem>
+					<PriorityBinding>
+						<Binding Path="SelectedItem" IsAsync="True"></Binding>
+					</PriorityBinding>
+				</ListView.SelectedItem>
 				<ListView.ItemTemplate>
 					<DataTemplate>
 						<StackPanel Orientation="Horizontal">

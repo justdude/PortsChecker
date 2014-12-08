@@ -315,29 +315,22 @@ namespace PortsChecker.ModelView
 
       private void OnGetPortsInfo()
       {
+        if (SelectedClient == null)
+            return;
 
+				Task task = new Task(()=>{
 
-				//Task task = new Task(()=>{
-				GetSelectedPortsInfo();
-					
-			//});
-			//task.Start();
+					GetPortsInfo1();
+			});
+			task.Start();
       }
 
-			public List<PortInfo> GetSelectedPortsInfo()
-			{
-				if (SelectedClient == null)
-					return null;
-
-				PortInfo = GetSelectedPortsInfo(SelectedClient);
-				return PortInfo;
-			}
-
-			public List<PortInfo> GetSelectedPortsInfo(CCLient client)
+			private List<PortInfo> GetPortsInfo()
 			{
 				IsLoading = true;
+
 				ObjectInfo objInfo = new ObjectInfo(Commands.GetPorts);
-				var answer = Engines.ClientsConnections.Instance.GetDataRequest(client, objInfo);
+				var answer = Engines.ClientsConnections.Instance.GetDataRequest(SelectedClient, objInfo);
 				IsLoading = false;
 				return answer.TargetObject as List<PortInfo>;
 			}

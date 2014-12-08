@@ -159,11 +159,11 @@ namespace Server
         int bytesRead = clientSocket.EndReceive(res); //new AsyncCallback(this.OnSended)
 				
 				var arr = Clients[clientSocket];
+
 				Array.Resize(ref arr, bytesRead);
-				Clients[clientSocket] = arr;
 				
 				var objInfo = new ObjectInfo();
-				objInfo.ToObjectInfo(Clients[clientSocket]);
+				objInfo.ToObjectInfo(modBuffer);
 				
 				object targetAnswer = modCommandsAnswers.executor.Execute(objInfo.Command, objInfo.TargetObject);
 				
@@ -209,7 +209,7 @@ namespace Server
 			System.Console.WriteLine("Closed " + clientSocket.Connected);
 		}
 		
-		public virtual void Send(Socket client)
+		public void Send(Socket client)
 		{
 			byte[] data = Clients[client];
 			client.BeginSend(data, 0, data.Length, SocketFlags.None, 

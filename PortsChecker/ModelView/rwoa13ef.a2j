@@ -55,18 +55,14 @@ namespace PortsChecker.ModelView
 
 					computerModelView.SelectedClient = computerModelView.Client;
 					
-          List<PortInfo> ports = computerModelView.GetSelectedPortsInfo();//ConnectionsChecker.GetOpenPort();
+          List<PortInfo> ports = computerModelView.GeSelectedtPortsInfo();//ConnectionsChecker.GetOpenPort();
           if (ports == null)
           {
               ports = new List<PortInfo>();
           }
-
-					Execute(() =>
-					{
-						Ports.Clear();
-						ports.ForEach(p => { Ports.Add(p); });
-					});
-
+          Ports.Clear();
+          ports.ForEach(p => { Ports.Add(p); });
+					
 					OnPropertyChanged("SelectedItem");
 			}
 		}

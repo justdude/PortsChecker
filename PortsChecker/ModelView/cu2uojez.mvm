@@ -329,11 +329,11 @@ namespace PortsChecker.ModelView
 				if (SelectedClient == null)
 					return null;
 
-				PortInfo = GetSelectedPortsInfo(SelectedClient);
+				PortInfo = GetPortsInfo(SelectedClient);
 				return PortInfo;
 			}
 
-			public List<PortInfo> GetSelectedPortsInfo(CCLient client)
+			public List<PortInfo> GetPortsInfo(CCLient client)
 			{
 				IsLoading = true;
 				ObjectInfo objInfo = new ObjectInfo(Commands.GetPorts);

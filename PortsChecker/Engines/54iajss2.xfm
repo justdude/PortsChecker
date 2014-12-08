@@ -72,7 +72,10 @@ namespace PortsChecker.Engines
             
         ThreadPool.QueueUserWorkItem(p => 
         {
+					lock (modLockObj)
+					{
 						inf = GetDataRequest(target, sendedData);
+					}
             //resetEvent.Set();
         });
         //resetEvent.WaitOne();

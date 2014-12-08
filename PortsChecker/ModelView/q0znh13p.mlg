@@ -38,36 +38,23 @@ namespace PortsChecker.ModelView
 
         #region Properties
 
-
-				public object SelectedItem
-				{
-					get
-					{
-						return mvSelectedItem;
-					}
-					set
-					{
-						if (mvSelectedItem == value)
-							return;
-
-						mvSelectedItem = value;
-
-						OnPropertyChanged("SelectedItem");
-					}
-				}
         public List<PortInfo> PortInfo
         {
             get
             {
-              if (mvPortInfo == null)
-              {
-                OnGetPortsInfo();
-              }
-              return mvPortInfo;
+
+                if (mvPortInfo == null)
+                {
+                    SelectedClient = Client;
+                    OnGetPortsInfo();
+                    SelectedClient = null;
+                }
+
+                return mvPortInfo;
             }
             protected set
             {
-							if (mvPortInfo == value)
+                if (value == mvPortInfo)
                     return;
 
                 mvPortInfo = value;
@@ -244,7 +231,6 @@ namespace PortsChecker.ModelView
         }
 
         private DelegateCommand mvAnalyzeAndSendUrl;
-				private object mvSelectedItem;
         public ICommand AnalyzeAndSendUrl
         {
             get
@@ -313,34 +299,23 @@ namespace PortsChecker.ModelView
 			var answer = Engines.ClientsConnections.Instance.GetDataRequest( modClientTarget, objInfo);
 		}
 
-      private void OnGetPortsInfo()
-      {
+        private void OnGetPortsInfo()
+        {
+            if (SelectedClient == null)
+                return;
 
+					Task task = new Task(()=>{
 
-				//Task task = new Task(()=>{
-				GetSelectedPortsInfo();
-					
-			//});
-			//task.Start();
-      }
+            IsLoading = true;
 
-			public List<PortInfo> GetSelectedPortsInfo()
-			{
-				if (SelectedClient == null)
-					return null;
+            ObjectInfo objInfo = new ObjectInfo(Commands.GetPorts);
+            var answer = Engines.ClientsConnections.Instance.GetDataRequest(SelectedClient, objInfo);
+            PortInfo = answer.TargetObject as List<PortInfo>;
 
-				PortInfo = GetSelectedPortsInfo(SelectedClient);
-				return PortInfo;
-			}
-
-			public List<PortInfo> GetSelectedPortsInfo(CCLient client)
-			{
-				IsLoading = true;
-				ObjectInfo objInfo = new ObjectInfo(Commands.GetPorts);
-				var answer = Engines.ClientsConnections.Instance.GetDataRequest(client, objInfo);
-				IsLoading = false;
-				return answer.TargetObject as List<PortInfo>;
-			}
+            IsLoading = false;
+				});
+				task.Start();
+        }
 
 
 		private void OnGetServerClients()

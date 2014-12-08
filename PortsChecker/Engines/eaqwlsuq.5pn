@@ -21,7 +21,6 @@ namespace PortsChecker.Engines
 	/// </summary>
 	public class ClientsConnections
 	{
-		private object modLockObj;
 		public string CurrentHost { get; set; }
 		
 		public int CurrentPort { get; set; }
@@ -63,21 +62,24 @@ namespace PortsChecker.Engines
 			return received;
 		}
 
-    public ObjectInfo GetDataRequestAsync(CCLient target, ObjectInfo sendedData)
-    {
-        //Thread thread = new Thread(new ThreadStart(() => { GetDataRequest(target, sendedData); }));
-        //thread.Start();
-        ManualResetEvent resetEvent = new ManualResetEvent(false);
-        ObjectInfo inf = null;
-            
-        ThreadPool.QueueUserWorkItem(p => 
+        public ObjectInfo GetDataRequestAsync(CCLient target, ObjectInfo sendedData)
         {
-						inf = GetDataRequest(target, sendedData);
-            //resetEvent.Set();
-        });
-        //resetEvent.WaitOne();
-        return inf;
-    }
+            //Thread thread = new Thread(new ThreadStart(() => { GetDataRequest(target, sendedData); }));
+            //thread.Start();
+            ManualResetEvent resetEvent = new ManualResetEvent(false);
+            ObjectInfo inf = null;
+            
+            ThreadPool.QueueUserWorkItem(p => 
+            {
+							lock (modLockObj)
+							{
+								inf = GetDataRequest(target, sendedData);
+							}
+               resetEvent.Set();
+            });
+            resetEvent.WaitOne();
+            return inf;
+        }
 		
 		
 		public bool GetDataRequest(string host, int port)

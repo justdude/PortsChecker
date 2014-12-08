@@ -1,0 +1,21 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Sockets;
+using System.Text;
+
+namespace Server
+{
+	public class CClientBase: Socket
+	{
+		public CClientBase(SocketInformation inf): base(inf)
+		{
+		}
+
+		public CClientBase(AddressFamily addressFamily, SocketType socketType, ProtocolType protocolType):base(addressFamily, socketType, protocolType)
+		{
+		}
+
+
+	}
+}

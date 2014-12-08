@@ -22,8 +22,8 @@ namespace Server
 	{
 		#region Fields
 		private Socket modServerSocket = null;
-		private Socket modClientSocket = null;
-		//private byte[] modBuffer = null;
+		//private Socket modClientSocket = null;
+		private byte[] modBuffer = null;
 		private string mvMessage = "";
 		
 		private IPEndPoint mvEndPoint = null;
@@ -38,7 +38,7 @@ namespace Server
 		#endregion
 
 		#region Properties
-		public Dictionary<Socket, byte[]> Clients
+		public List<CClientBase> Clients
     { 
         get; 
         private set; 
@@ -86,7 +86,7 @@ namespace Server
 		#region Ctr
 		private CServer()
 		{
-        Clients = new Dictionary<Socket, byte[]>();
+			Clients = new List<CClientBase>();
 		}
 		static CServer()
 		{
@@ -99,8 +99,8 @@ namespace Server
 		{
 			var res = IPAddress.TryParse(host, out mvIpAdress);
 			mvEndPoint = new IPEndPoint( mvIpAdress.Address, port);
-			
-			modServerSocket = new Socket( IpAdress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+
+			modServerSocket = new CClientBase(IpAdress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 			modServerSocket.Bind( mvEndPoint );
 		}
 		
@@ -128,10 +128,10 @@ namespace Server
 				Console.WriteLine("OnAccepted " + res.ToString());
 				resetEvent.Set();
 
-				if (Clients.ContainsKey(clientSocket))
-					Clients.Add(clientSocket, null);
+				if (!Clients.Exists(p => p == clientSocket))
+					Clients.Add(clientSocket);
 
-				Receive(clientSocket);
+				Receive(clientSocket, ref modBuffer);
 			}
 			catch (Exception ex)
 			{
@@ -139,15 +139,13 @@ namespace Server
 			}
 		}
 
-    private void Receive(Socket clientSocket)
+		private void Receive(CClientBase clientSocket, ref byte[] buffer)
     {
-			byte[] buffer = new byte[clientSocket.ReceiveBufferSize];
+        buffer = new byte[clientSocket.ReceiveBufferSize];
 
-			Clients[clientSocket] = buffer;
-
-			clientSocket.BeginReceive(buffer, 0, buffer.Count(),
-																		SocketFlags.None, new AsyncCallback(ReceiveCallBack),
-																		clientSocket);
+        clientSocket.BeginReceive(buffer, 0, buffer.Count(),
+                                      SocketFlags.None, new AsyncCallback(ReceiveCallBack),
+                                      clientSocket);
     }
 		
 
@@ -155,15 +153,13 @@ namespace Server
 		{
 			try
 			{
-        var clientSocket = res.AsyncState as Socket;
+				var clientSocket = res.AsyncState as CClientBase;
         int bytesRead = clientSocket.EndReceive(res); //new AsyncCallback(this.OnSended)
-				
-				var arr = Clients[clientSocket];
-				Array.Resize(ref arr, bytesRead);
-				Clients[clientSocket] = arr;
+
+				Array.Resize(ref modBuffer, bytesRead);
 				
 				var objInfo = new ObjectInfo();
-				objInfo.ToObjectInfo(Clients[clientSocket]);
+				objInfo.ToObjectInfo(modBuffer);
 				
 				object targetAnswer = modCommandsAnswers.executor.Execute(objInfo.Command, objInfo.TargetObject);
 				
@@ -171,15 +167,20 @@ namespace Server
                 //if (objInfo.IsNeedAnswer)
 				{
 					var answerObjInfo = new ObjectInfo(Commands.VOID, targetAnswer);
-					Clients[clientSocket] = answerObjInfo.ToByte();
+					modBuffer = answerObjInfo.ToByte();
 				}
 
-        Send(clientSocket);
+        Send(clientSocket, ref modBuffer);
 
+			}
+			catch (ObjectDisposedException ex)
+			{
+				resetEvent.Set();
 			}
 			catch(Exception ex)
 			{
-				var clientSocket = res.AsyncState as Socket;
+				var clientSocket = res.AsyncState as CClientBase;
+				Receive(clientSocket, ref modBuffer);
 				ProcessError(res, ex);
 			}
 		}
@@ -188,15 +189,13 @@ namespace Server
 		{
 			System.Console.WriteLine(ex.Message);
 
-			var clientSocket = res.AsyncState as Socket;
-			//if (clientSocket == null || clientSocket.Connected == false)
-			CloseConnection(clientSocket);
-			Clients.Remove(clientSocket);
-
+			var clientSocket = res.AsyncState as CClientBase;
+			if (clientSocket == null || clientSocket.Connected == false)
+				CloseConnection(clientSocket);
 			resetEvent.Set();
 		}
 
-		private void CloseConnection(Socket clientSocket)
+		private void CloseConnection(CClientBase clientSocket)
 		{
 			if (clientSocket == null)
 				return;
@@ -208,10 +207,9 @@ namespace Server
 
 			System.Console.WriteLine("Closed " + clientSocket.Connected);
 		}
-		
-		public virtual void Send(Socket client)
+
+		public void Send(CClientBase client, ref  byte[] data)
 		{
-			byte[] data = Clients[client];
 			client.BeginSend(data, 0, data.Length, SocketFlags.None, 
                           new AsyncCallback( SendCallBack), client);
 		}
@@ -221,9 +219,9 @@ namespace Server
 		{
 			try
 			{
-          var clientSocket = res.AsyncState as Socket;
+          var clientSocket = res.AsyncState as CClientBase;
           clientSocket.EndSend(res);
-          Receive(clientSocket);
+          Receive(clientSocket, ref modBuffer);
 			}
 			catch(Exception ex)
 			{

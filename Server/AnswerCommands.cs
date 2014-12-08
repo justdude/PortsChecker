@@ -59,7 +59,7 @@ namespace Server
 		{
 			System.Console.WriteLine("OnGetServerClients ");
             List<Computer> computers = new List<Computer>();
-            foreach (var client in CServer.Instance.Clients)
+            foreach (var client in CServer.Instance.Clients.Keys)
             {
                 IPEndPoint remotePoint = client.RemoteEndPoint as IPEndPoint;
                 var computer = new Computer(remotePoint.Port,  remotePoint.Address.ToString() , 

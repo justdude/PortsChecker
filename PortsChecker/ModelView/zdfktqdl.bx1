@@ -313,34 +313,23 @@ namespace PortsChecker.ModelView
 			var answer = Engines.ClientsConnections.Instance.GetDataRequest( modClientTarget, objInfo);
 		}
 
-      private void OnGetPortsInfo()
-      {
+        private void OnGetPortsInfo()
+        {
+            if (SelectedClient == null)
+                return;
 
+					Task task = new Task(()=>{
 
-				//Task task = new Task(()=>{
-				GetSelectedPortsInfo();
-					
-			//});
-			//task.Start();
-      }
+            IsLoading = true;
 
-			public List<PortInfo> GetSelectedPortsInfo()
-			{
-				if (SelectedClient == null)
-					return null;
-
-				PortInfo = GetSelectedPortsInfo(SelectedClient);
-				return PortInfo;
-			}
-
-			public List<PortInfo> GetSelectedPortsInfo(CCLient client)
-			{
-				IsLoading = true;
-				ObjectInfo objInfo = new ObjectInfo(Commands.GetPorts);
-				var answer = Engines.ClientsConnections.Instance.GetDataRequest(client, objInfo);
-				IsLoading = false;
-				return answer.TargetObject as List<PortInfo>;
-			}
+            ObjectInfo objInfo = new ObjectInfo(Commands.GetPorts);
+            var answer = Engines.ClientsConnections.Instance.GetDataRequest(SelectedClient, objInfo);
+            PortInfo = answer.TargetObject as List<PortInfo>;
+						System.Threading.Thread.Sleep(1000 * 4);
+            IsLoading = false;
+				});
+				task.Start();
+        }
 
 
 		private void OnGetServerClients()

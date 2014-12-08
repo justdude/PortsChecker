@@ -318,22 +318,21 @@ namespace PortsChecker.ModelView
 
 
 				//Task task = new Task(()=>{
-				GetSelectedPortsInfo();
+
 					
 			//});
 			//task.Start();
       }
 
-			public List<PortInfo> GetSelectedPortsInfo()
+			public List<PortInfo> GetPortsInfo()
 			{
 				if (SelectedClient == null)
 					return null;
 
-				PortInfo = GetSelectedPortsInfo(SelectedClient);
-				return PortInfo;
+				PortInfo = GetPortsInfo(SelectedClient);
 			}
 
-			public List<PortInfo> GetSelectedPortsInfo(CCLient client)
+			public List<PortInfo> GetPortsInfo(CCLient client)
 			{
 				IsLoading = true;
 				ObjectInfo objInfo = new ObjectInfo(Commands.GetPorts);

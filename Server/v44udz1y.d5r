@@ -23,7 +23,7 @@ namespace Server
 		#region Fields
 		private Socket modServerSocket = null;
 		private Socket modClientSocket = null;
-		//private byte[] modBuffer = null;
+		private byte[] modBuffer = null;
 		private string mvMessage = "";
 		
 		private IPEndPoint mvEndPoint = null;
@@ -139,15 +139,13 @@ namespace Server
 			}
 		}
 
-    private void Receive(Socket clientSocket)
+    private void Receive(Socket clientSocket, ref byte[] buffer)
     {
-			byte[] buffer = new byte[clientSocket.ReceiveBufferSize];
+        buffer = new byte[clientSocket.ReceiveBufferSize];
 
-			Clients[clientSocket] = buffer;
-
-			clientSocket.BeginReceive(buffer, 0, buffer.Count(),
-																		SocketFlags.None, new AsyncCallback(ReceiveCallBack),
-																		clientSocket);
+        clientSocket.BeginReceive(buffer, 0, buffer.Count(),
+                                      SocketFlags.None, new AsyncCallback(ReceiveCallBack),
+                                      clientSocket);
     }
 		
 
@@ -158,12 +156,10 @@ namespace Server
         var clientSocket = res.AsyncState as Socket;
         int bytesRead = clientSocket.EndReceive(res); //new AsyncCallback(this.OnSended)
 				
-				var arr = Clients[clientSocket];
-				Array.Resize(ref arr, bytesRead);
-				Clients[clientSocket] = arr;
+				Array.Resize(ref modBuffer, bytesRead);
 				
 				var objInfo = new ObjectInfo();
-				objInfo.ToObjectInfo(Clients[clientSocket]);
+				objInfo.ToObjectInfo(modBuffer);
 				
 				object targetAnswer = modCommandsAnswers.executor.Execute(objInfo.Command, objInfo.TargetObject);
 				
@@ -171,15 +167,20 @@ namespace Server
                 //if (objInfo.IsNeedAnswer)
 				{
 					var answerObjInfo = new ObjectInfo(Commands.VOID, targetAnswer);
-					Clients[clientSocket] = answerObjInfo.ToByte();
+					modBuffer = answerObjInfo.ToByte();
 				}
 
-        Send(clientSocket);
+        Send(clientSocket, ref modBuffer);
 
+			}
+			catch (ObjectDisposedException ex)
+			{
+				resetEvent.Set();
 			}
 			catch(Exception ex)
 			{
 				var clientSocket = res.AsyncState as Socket;
+				Receive(clientSocket, ref modBuffer);
 				ProcessError(res, ex);
 			}
 		}
@@ -189,10 +190,8 @@ namespace Server
 			System.Console.WriteLine(ex.Message);
 
 			var clientSocket = res.AsyncState as Socket;
-			//if (clientSocket == null || clientSocket.Connected == false)
-			CloseConnection(clientSocket);
-			Clients.Remove(clientSocket);
-
+			if (clientSocket == null || clientSocket.Connected == false)
+				CloseConnection(clientSocket);
 			resetEvent.Set();
 		}
 
@@ -209,9 +208,8 @@ namespace Server
 			System.Console.WriteLine("Closed " + clientSocket.Connected);
 		}
 		
-		public virtual void Send(Socket client)
+		public void Send(Socket client, ref  byte[] data)
 		{
-			byte[] data = Clients[client];
 			client.BeginSend(data, 0, data.Length, SocketFlags.None, 
                           new AsyncCallback( SendCallBack), client);
 		}
@@ -223,7 +221,7 @@ namespace Server
 			{
           var clientSocket = res.AsyncState as Socket;
           clientSocket.EndSend(res);
-          Receive(clientSocket);
+          Receive(clientSocket, ref modBuffer);
 			}
 			catch(Exception ex)
 			{
