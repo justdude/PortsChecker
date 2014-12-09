@@ -18,64 +18,66 @@ namespace Server
 	/// <summary>
 	/// Description of Server.
 	/// </summary>
-	public sealed class CServer
+	public class CServer
 	{
 		#region Fields
 		private Socket modServerSocket = null;
 		private Socket modClientSocket = null;
 		//private byte[] modBuffer = null;
 		private string mvMessage = "";
-		
+
 		private IPEndPoint mvEndPoint = null;
 		private IPAddress mvIpAdress = null;
-		
+
 		private static CommandsAnswers modCommandsAnswers = null;
-		
+
 		private static ManualResetEvent resetEvent = null;
 		private static ManualResetEvent sendDone = new ManualResetEvent(false);
-		
+
 		private static CServer instance = null;
 		#endregion
 
 		#region Properties
 		public Dictionary<Socket, byte[]> Clients
-    { 
-        get; 
-        private set; 
-    }
+		{
+			get;
+			private set;
+		}
 
-		public string Message 
+		public string Message
 		{
 			get
 			{
 				return mvMessage;
 			}
 		}
-		public IPEndPoint EndPoint 
-		{ 
+		public IPEndPoint EndPoint
+		{
 			get
-			{ 
-				return mvEndPoint; 
+			{
+				return mvEndPoint;
 			}
-		  	set
-		  	{ 
-		  		mvEndPoint = value; 
-		  	}
+			set
+			{
+				mvEndPoint = value;
+			}
 		}
-		public IPAddress IpAdress 
-		{ 
+		public IPAddress IpAdress
+		{
 			get
-			{ 
-				return mvIpAdress; 
+			{
+				return mvIpAdress;
 			}
-		  	set
-		  	{ 
-		  		mvIpAdress = value; 
-		  	}
+			set
+			{
+				mvIpAdress = value;
+			}
 		}
-		
-		public static CServer Instance {
-			get {
+
+		public static CServer Instance
+		{
+			get
+			{
 				if (instance == null)
 					instance = new CServer();
 				return instance;
@@ -86,7 +88,7 @@ namespace Server
 		#region Ctr
 		private CServer()
 		{
-        Clients = new Dictionary<Socket, byte[]>();
+			Clients = new Dictionary<Socket, byte[]>();
 		}
 		static CServer()
 		{
@@ -98,28 +100,28 @@ namespace Server
 		public void Bind(string host, int port)
 		{
 			var res = IPAddress.TryParse(host, out mvIpAdress);
-			mvEndPoint = new IPEndPoint( mvIpAdress.Address, port);
-			
-			modServerSocket = new Socket( IpAdress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-			modServerSocket.Bind( mvEndPoint );
+			mvEndPoint = new IPEndPoint(IPAddress.Any, port);
+
+			modServerSocket = new Socket(IpAdress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+			modServerSocket.Bind(mvEndPoint);
 		}
-		
+
 		public void Listen(int maxConnections)
 		{
 			modServerSocket.Listen(maxConnections);
-			
-			while(true || modServerSocket != null)
+
+			while (true) //|| modServerSocket != null)
 			{
 				resetEvent.Reset();
-				
+
 				Console.WriteLine("Listen..");
 				//ThreadPool.QueueUserWorkItem(
-				modServerSocket.BeginAccept( new AsyncCallback(AcceptCallBack), modServerSocket);
-				
+				modServerSocket.BeginAccept(new AsyncCallback(AcceptCallBack), modServerSocket);
+
 				resetEvent.WaitOne();
 			}
 		}
-		
+
 		protected void AcceptCallBack(IAsyncResult res)
 		{
 			try
@@ -139,8 +141,8 @@ namespace Server
 			}
 		}
 
-    private void Receive(Socket clientSocket)
-    {
+		private void Receive(Socket clientSocket)
+		{
 			byte[] buffer = new byte[clientSocket.ReceiveBufferSize];
 
 			Clients[clientSocket] = buffer;
@@ -148,36 +150,36 @@ namespace Server
 			clientSocket.BeginReceive(buffer, 0, buffer.Count(),
 																		SocketFlags.None, new AsyncCallback(ReceiveCallBack),
 																		clientSocket);
-    }
-		
+		}
+
 
 		protected void ReceiveCallBack(IAsyncResult res)
 		{
 			try
 			{
-        var clientSocket = res.AsyncState as Socket;
-        int bytesRead = clientSocket.EndReceive(res); //new AsyncCallback(this.OnSended)
-				
+				var clientSocket = res.AsyncState as Socket;
+				int bytesRead = clientSocket.EndReceive(res); //new AsyncCallback(this.OnSended)
+
 				var arr = Clients[clientSocket];
 				Array.Resize(ref arr, bytesRead);
 				Clients[clientSocket] = arr;
-				
+
 				var objInfo = new ObjectInfo();
 				objInfo.ToObjectInfo(Clients[clientSocket]);
-				
+
 				object targetAnswer = modCommandsAnswers.executor.Execute(objInfo.Command, objInfo.TargetObject);
-				
+
 				if (targetAnswer != null)
-                //if (objInfo.IsNeedAnswer)
+				//if (objInfo.IsNeedAnswer)
 				{
 					var answerObjInfo = new ObjectInfo(Commands.VOID, targetAnswer);
 					Clients[clientSocket] = answerObjInfo.ToByte();
 				}
 
-        Send(clientSocket);
+				Send(clientSocket);
 
 			}
-			catch(Exception ex)
+			catch (Exception ex)
 			{
 				var clientSocket = res.AsyncState as Socket;
 				ProcessError(res, ex);
@@ -208,35 +210,35 @@ namespace Server
 
 			System.Console.WriteLine("Closed " + clientSocket.Connected);
 		}
-		
+
 		public virtual void Send(Socket client)
 		{
 			byte[] data = Clients[client];
-			client.BeginSend(data, 0, data.Length, SocketFlags.None, 
-                          new AsyncCallback( SendCallBack), client);
+			client.BeginSend(data, 0, data.Length, SocketFlags.None,
+								  new AsyncCallback(SendCallBack), client);
 		}
-		
-		
+
+
 		protected void SendCallBack(IAsyncResult res)
 		{
 			try
 			{
-          var clientSocket = res.AsyncState as Socket;
-          clientSocket.EndSend(res);
-          Receive(clientSocket);
+				var clientSocket = res.AsyncState as Socket;
+				clientSocket.EndSend(res);
+				Receive(clientSocket);
 			}
-			catch(Exception ex)
+			catch (Exception ex)
 			{
 				ProcessError(res, ex);
 			}
 			//sendDone.Set();
 		}
-		
+
 		public void Close()
 		{
 			modClientSocket.Close();
 			modServerSocket.Close();
 		}
-		
+
 	}
 }

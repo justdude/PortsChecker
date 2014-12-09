@@ -20,21 +20,21 @@ namespace PortsChecker.ModelView
 	/// <summary>
 	/// Description of WindowModelView.
 	/// </summary>
-	public class WindowModelView : ViewModelBase
+	public class WindowModelView :ViewModelBase
 	{
-		
+
 		private object mvSelectedItem;
-		
-		public ObservableCollection<IComputer> Computers { get; private set;}
-		
-		public ObservableCollection<PortInfo> Ports { get; private set;}
-		
-		public ICommand AddComputer { get; private set;}
-		
-		public ICommand RemoveComputer { get; private set;}
-		
-		public string SelectedIp {get; set;}
-		
+
+		public ObservableCollection<IComputer> Computers { get; private set; }
+
+		public ObservableCollection<PortInfo> Ports { get; private set; }
+
+		public ICommand AddComputer { get; private set; }
+
+		public ICommand RemoveComputer { get; private set; }
+
+		public string SelectedIp { get; set; }
+
 		public object SelectedItem
 		{
 			get
@@ -43,69 +43,69 @@ namespace PortsChecker.ModelView
 			}
 			set
 			{
-          if (mvSelectedItem == value)
-              return;
+				if (mvSelectedItem == value)
+					return;
 
-					mvSelectedItem = value;
+				mvSelectedItem = value;
 
-          var computerModelView = mvSelectedItem as ComputerModelView;
+				var computerModelView = mvSelectedItem as ComputerModelView;
 
-					if (computerModelView == null)
-						return;
+				if (computerModelView == null)
+					return;
 
-					computerModelView.SelectedClient = computerModelView.Client;
-					
-          List<PortInfo> ports = computerModelView.GetSelectedPortsInfo();//ConnectionsChecker.GetOpenPort();
-          if (ports == null)
-          {
-              ports = new List<PortInfo>();
-          }
+				computerModelView.SelectedClient = computerModelView.Client;
 
-					Execute(() =>
-					{
-						Ports.Clear();
-						ports.ForEach(p => { Ports.Add(p); });
-					});
+				List<PortInfo> ports = computerModelView.GetSelectedPortsInfo();//ConnectionsChecker.GetOpenPort();
+				if (ports == null)
+				{
+					ports = new List<PortInfo>();
+				}
 
-					OnPropertyChanged("SelectedItem");
+				Execute(() =>
+				{
+					Ports.Clear();
+					ports.ForEach(p => { Ports.Add(p); });
+				});
+
+				OnPropertyChanged("SelectedItem");
 			}
 		}
-		
+
 		public WindowModelView()
 		{
 			Computers = new ObservableCollection<IComputer>();
 			AddComputer = new DelegateCommand(OnAddComputer);
 			RemoveComputer = new DelegateCommand(OnRemoveComputer);
-			
 
-			
+
+
 			ClientsConnections.Instance.CurrentHost = ConnectionsChecker.GetOwnIPAdress().Address.ToString();
 			Engines.ClientsConnections.Instance.CurrentPort = 11102;
 
-            List<PortInfo> ports = new List<PortInfo>();//ConnectionsChecker.GetOpenPort();
+			List<PortInfo> ports = new List<PortInfo>();//ConnectionsChecker.GetOpenPort();
 			Ports = new ObservableCollection<PortInfo>(ports);
 
-            //var current = new ComputerModelView(null);
-            //current.SelectedClient = new Client.CCLient();
-            //Computers.Add(current);
+			//var current = new ComputerModelView(null);
+			//current.SelectedClient = new Client.CCLient();
+			//Computers.Add(current);
 
 		}
-		
+
 		private void OnAddComputer()
 		{
 			View.NewComputer wind = new View.NewComputer();
-			var modelView = new NewComputerModelView(){ Close = ()=> wind.Close()};
+			var modelView = new NewComputerModelView() { Close = () => wind.Close() };
 			wind.DataContext = modelView;
 			wind.ShowDialog();
-			Computers.Add( modelView.Comp );
+			Computers.Add(modelView.Comp);
 		}
-		
+
 		private void OnRemoveComputer()
 		{
 			if (!string.IsNullOrEmpty(SelectedIp))
-				Computers.Remove( Computers.FirstOrDefault( p=> !string.IsNullOrEmpty(p.Host) 
-			                                           && p.Host == SelectedIp ));
+				Computers.Remove(Computers.FirstOrDefault(p => !string.IsNullOrEmpty(p.Host)
+																	 && p.Host == SelectedIp));
 		}
-		
+
 	}
 }
