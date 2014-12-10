@@ -30,9 +30,7 @@ namespace Server
 		private IPAddress mvIpAdress = null;
 
 		private static CommandsAnswers modCommandsAnswers = null;
-
 		private static ManualResetEvent resetEvent = null;
-		private static ManualResetEvent sendDone = new ManualResetEvent(false);
 
 		private static CServer instance = null;
 		#endregion
@@ -86,7 +84,7 @@ namespace Server
 		#endregion
 
 		#region Ctr
-		private CServer()
+		public CServer()
 		{
 			Clients = new Dictionary<Socket, byte[]>();
 		}
@@ -153,7 +151,7 @@ namespace Server
 		}
 
 
-		protected void ReceiveCallBack(IAsyncResult res)
+		protected virtual void ReceiveCallBack(IAsyncResult res)
 		{
 			try
 			{
@@ -162,20 +160,8 @@ namespace Server
 
 				var arr = Clients[clientSocket];
 				Array.Resize(ref arr, bytesRead);
-				Clients[clientSocket] = arr;
 
-				var objInfo = new ObjectInfo();
-				objInfo.ToObjectInfo(Clients[clientSocket]);
-
-				object targetAnswer = modCommandsAnswers.executor.Execute(objInfo.Command, objInfo.TargetObject);
-
-				if (targetAnswer != null)
-				//if (objInfo.IsNeedAnswer)
-				{
-					var answerObjInfo = new ObjectInfo(Commands.VOID, targetAnswer);
-					Clients[clientSocket] = answerObjInfo.ToByte();
-				}
-
+				Clients[clientSocket] = ProccessAndAnswer(clientSocket, arr);
 				Send(clientSocket);
 
 			}
@@ -184,6 +170,22 @@ namespace Server
 				var clientSocket = res.AsyncState as Socket;
 				ProcessError(res, ex);
 			}
+		}
+
+		protected virtual byte[] ProccessAndAnswer(Socket clientSocket, byte[] data)
+		{
+			var objInfo = new ObjectInfo();
+			objInfo.ToObjectInfo(data);
+
+			object targetAnswer = modCommandsAnswers.executor.Execute(objInfo.Command, objInfo.TargetObject);
+
+			if (targetAnswer != null)
+			//if (objInfo.IsNeedAnswer)
+			{
+				var answerObjInfo = new ObjectInfo(Commands.VOID, targetAnswer);
+				return answerObjInfo.ToByte();
+			}
+			return null;
 		}
 
 		private void ProcessError(IAsyncResult res, Exception ex)
